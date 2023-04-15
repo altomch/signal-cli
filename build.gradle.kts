@@ -34,7 +34,17 @@ graalvmNative {
     }
 }
 
+val libsignalClientPath = project.findProperty("libsignal_client_path")?.toString()
+
 dependencies {
+    if (libsignalClientPath == null) {
+        implementation(libs.signalservice)
+    } else {
+        implementation(libs.signalservice) {
+            exclude(group = "org.signal", module = "libsignal-client")
+        }
+        implementation(files(libsignalClientPath))
+    }
     implementation(libs.bouncycastle)
     implementation(libs.jackson.databind)
     implementation(libs.argparse4j)

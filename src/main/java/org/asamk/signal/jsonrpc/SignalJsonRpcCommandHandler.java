@@ -20,11 +20,14 @@ import org.asamk.signal.manager.Manager;
 import org.asamk.signal.manager.MultiAccountManager;
 import org.asamk.signal.manager.RegistrationManager;
 import org.asamk.signal.output.JsonWriter;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.whispersystems.signalservice.api.push.exceptions.CdsiResourceExhaustedException;
 
 import java.io.IOException;
 import java.nio.channels.OverlappingFileLockException;
+import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -216,6 +219,9 @@ public class SignalJsonRpcCommandHandler {
                     e.getMessage(),
                     getErrorDataNode(objectMapper, result)));
         } catch (IOErrorException e) {
+            if (e.getCause() instanceof CdsiResourceExhaustedException) {
+                commandJsonWriter.write(getCdsiResourceExhaustedErrorData((CdsiResourceExhaustedException) e.getCause()));
+            }
             throw new JsonRpcException(new JsonRpcResponse.Error(IO_ERROR,
                     e.getMessage(),
                     getErrorDataNode(objectMapper, result)));
@@ -232,6 +238,10 @@ public class SignalJsonRpcCommandHandler {
 
         Object output = result[0] == null ? Map.of() : result[0];
         return objectMapper.valueToTree(output);
+    }
+
+    private static Map<String, Integer> getCdsiResourceExhaustedErrorData(CdsiResourceExhaustedException e) {
+        return Collections.singletonMap("retryAfterSeconds", e.getRetryAfterSeconds());
     }
 
     private JsonNode getErrorDataNode(final ObjectMapper objectMapper, final Object[] result) {
